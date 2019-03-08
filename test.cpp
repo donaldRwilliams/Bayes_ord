@@ -75,19 +75,20 @@ List test(arma::mat X, int samples, arma::mat int_mat, int temp) {
    // for intercept only design matrix
    arma::mat intercept_mat(n, 1, arma::fill::ones);
    
-   // arma::mat mn(p, 1, arma::fill::ones);
-   
-   // matrix-F starting matrix
-   // arma::mat Psi = arma::eye<arma::mat>(p, p);
-   
+   // diagonal matrix for matrix-F Wishart
    arma::mat b_inv = arma::eye<arma::mat>(p, p);
    
-   arma::mat sigma_inv = arma::eye<arma::mat>(p, p);
+   // arma::mat sigma_inv = arma::eye<arma::mat>(p, p);
    
-   arma::mat check = arma::eye<arma::mat>(p, p);
+   // arma::mat check = arma::eye<arma::mat>(p, p);
    
    arma::mat vb = arma::eye<arma::mat>(p, p);
-   // residual correlation matrix
+   
+   
+   arma:: mat sig_inv = arma::mat(p,p);
+   
+   
+   //residual correlation matrix
 
   
    // ordinal levels
@@ -98,7 +99,7 @@ List test(arma::mat X, int samples, arma::mat int_mat, int temp) {
    // int i;  int j;
    arma::mat mattemp = arma::mat(n,p);
  
-   arma::mat e(p, 1, arma::fill::zeros);
+   arma::colvec   e(p);
 
     arma::mat mattemp2(n,p);
    arma::colvec mattemp3(p);
@@ -124,77 +125,68 @@ List test(arma::mat X, int samples, arma::mat int_mat, int temp) {
   arma::cube  Psi = arma::cube(p, p, 1, arma::fill::zeros);
   arma::cube cor_save = arma::cube(p,p, samples);
   
- 
-  
-  
-   
- 
-  
   arma::mat R_top(n,p);
+  arma::mat  R_bottom = arma::mat(n,p);
    
-   arma::mat  R_bottom = arma::mat(n,p);
-   
-   // arma::rowvec mattemp4(p);
-   
-  
-  for(int i = 0; i < p; i ++){
-    Psi(i,i,0) = 1;
-}
+  Psi.slice(0) = arma::eye<arma::mat>(p, p);
+
  
  
  
  
  
- 
-  arma::mat slice_thresh = arma::mat(n,p);
-  
-  arma::mat  b(p, 1, arma::fill::zeros);
  
   
+  
+    
+   arma::mat  b(p, 1, arma::fill::zeros);
+ 
    arma::mat ss = arma::mat(p, 1);
   
- 
-   arma::cube  thresh_mat = arma::zeros<arma::cube>(p, n_levels.size() + 1, samples);
+   arma::cube  thresh_mat = arma::zeros<arma::cube>(p, n_levels.size() + 1, 1);
    
-   arma::cube c_thresh_mat = arma::cube(p, n_levels.size() + 1, samples, arma::fill::zeros); 
+   arma::cube c_thresh_mat = arma::cube(p, n_levels.size() + 1, 1, arma::fill::zeros); 
    
+   arma::mat slice_thresh = arma::mat(n,p);
    
    arma::cube cor_mat = arma::cube(p,p,1, arma::fill::zeros);
    
-   for(int i = 0; i < p; i ++){
-     for(int j = 0; j < p; j ++){
+   arma::mat zstar(n, p, arma::fill::zeros); 
+   
+   // for(int i = 0; i < p; i ++){
+     // for(int j = 0; j < p; j ++){
        
-       cor_mat(i,j,0) = int_mat(i,j);
-     }
-   }
+       cor_mat.slice(0) = arma::eye<arma::mat>(p, p);
+     // }
+   // }
    
    
    
    // arma::cube zstar(n, p, samples, arma::fill::zeros); 
-   arma::mat zstar(n, p, arma::fill::zeros); 
+  
    
    int arr[] = {0, 5};
 
-for(int k = 0; k < samples; k ++){
+// for(int k = 0; k < samples; k ++){
    
    for(int i = 0; i < p; i ++ ){
      for(int j = 0; j < 2; j ++){
        
        if(j == 0){
 
-             c_thresh_mat(i,arr[j],k) = -arma::datum::inf;
+             c_thresh_mat(i,arr[j],0) = -arma::datum::inf;
 
-             thresh_mat(i,arr[j], k) =  -arma::datum::inf;
+             thresh_mat(i,arr[j], 0) =  -arma::datum::inf;
        } if(j == 1){
 
-         c_thresh_mat(i,arr[j],k) = arma::datum::inf;
+         c_thresh_mat(i,arr[j],0) = arma::datum::inf;
 
-         thresh_mat(i, arr[j],k) = arma::datum::inf;
+         thresh_mat(i, arr[j],0) = arma::datum::inf;
        }
      }
    }
 
-}
+// }
 
   for(int k = 0; k < samples; k ++){
 
@@ -204,7 +196,7 @@ for(int k = 0; k < samples; k ++){
 
       for(int j = 0; j <= p - 1; j ++){
 
-              thresh_mat(j, i + 2, k) = R::qnorm5(sum(X.col(j) <= thresh_sampled[i] ) / n,
+              thresh_mat(j, i + 2, 0) = R::qnorm5(sum(X.col(j) <= thresh_sampled[i] ) / n,
                                        
                                       - R::qnorm5(sum(X.col(j) == 1) / n, 0, 1, TRUE, FALSE), 1, TRUE, FALSE);
 
@@ -257,10 +249,10 @@ for(int k = 0; k < samples; k ++){
    // note 0 = 1; 1 - max gives largest threshold
    for(int j = 0; j < p ; j ++){
 
-     arma::mat slice_c_thresh = thresh_mat.slice(0);
+     // arma::mat slice_c_thresh = thresh_mat.slice(0);
 
-     c_thresh_mat(j, thresh_sampled[i], 0) = R::qnorm5(R::runif(R::pnorm(0,  slice_c_thresh(j , thresh_sampled[i]), .01, TRUE, FALSE), 1),
-                                                       slice_c_thresh(j , thresh_sampled[i]),   0.01, TRUE, FALSE);
+     c_thresh_mat(j, thresh_sampled[i], 0) = R::qnorm5(R::runif(R::pnorm(0, thresh_mat.slice(0)(j , thresh_sampled[i]), .05, TRUE, FALSE), 1),
+                                                       thresh_mat.slice(0)(j , thresh_sampled[i]),   0.05, TRUE, FALSE);
        // location and scale, TRUE, FALSE);
 
    }
@@ -312,24 +304,19 @@ for(int i = 0; i < p ; i ++){
              
 
              arma::mat e = zstar - (trans(b_temp.t() * intercept_mat.t()));
+             
+             
              arma::mat  vt =  trans(e) * e ;
              
-             
-            arma::mat  sig_inv = wishrnd(inv(vt + Psi.slice(0)), n + 10 - 1);
-            
-           
-             
-             arma::vec temp6 =  1 / sqrt(sig_inv.diag());
+             arma::mat  sig_inv = wishrnd(inv(vt + Psi.slice(0)), n + 50 - 1);
         
-             cor_save.slice(k) = diagmat(temp6) * sig_inv * diagmat(temp6) * - 1;
+             cor_save.slice(k) = diagmat(1 / sqrt(sig_inv.diag())) * sig_inv * diagmat(1 / sqrt(sig_inv.diag())) * - 1;
   
              arma::mat cov_mat = inv(sig_inv);
              
-             arma::vec temp5 =  1 / sqrt(cov_mat.diag());
+             cor_mat.slice(0) = diagmat( 1 / sqrt(cov_mat.diag())) * cov_mat * diagmat( 1 / sqrt(cov_mat.diag()));
              
-             cor_mat.slice(0) = diagmat(temp5) * cov_mat * diagmat(temp5);
-             
-             Psi.slice(0) = wishrnd(inv(sig_inv + b_inv * 1000), 1000 + p - 2);
+             Psi.slice(0) = wishrnd(inv(sig_inv + b_inv * 1000), 1000 + 50 + p - 2);
   
   
   }
