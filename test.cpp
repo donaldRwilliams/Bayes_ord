@@ -348,6 +348,8 @@ for(int i = 0; i < p ; i ++){
  ret["b"] = b;
  ret["cor_mat"] = cor_mat;
  ret["cor_save"] = cor_save;
+ 
+ //d
 
  return ret;
  
