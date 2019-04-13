@@ -228,7 +228,7 @@ List mv_ordinal(arma::mat X, arma::mat model_mat, int nu, int samples) {
     arma::mat  vt =  trans(e) * e ;
     
     //  sample covariance matrix
-    arma::mat  Sigma = iwishrnd(vt, 1000 + n + nu - p - 1);
+    arma::mat  Sigma = iwishrnd(vt, n + nu - p - 1);
   
     // current correlation matrix
     arma::mat c_cor_mat = diagmat(1 / sqrt(Sigma.diag())) * Sigma * diagmat(1 / sqrt(Sigma.diag()));
